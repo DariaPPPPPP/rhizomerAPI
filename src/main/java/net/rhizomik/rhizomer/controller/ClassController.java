@@ -28,6 +28,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
 import javax.validation.Valid;
+import java.io.IOException;
 import java.net.URI;
 import java.util.List;
 
@@ -79,16 +80,42 @@ public class ClassController {
             @PathVariable String datasetId, @PathVariable String classCurie,
             @RequestParam(value = "page", defaultValue = "0") int page,
             @RequestParam(value = "size", defaultValue = "10") int size,
-            @RequestParam MultiValueMap<String, String> filters, Authentication auth) {
+            @RequestParam MultiValueMap<String, String> filters, Authentication auth) throws IOException {
         Dataset dataset = getDataset(datasetId);
+        logger.info("DATASET: {}", dataset);
+        logger.info("CLASS CURIE: {}", classCurie);
         securityController.checkPublicOrOwner(dataset, auth);
         Class datasetClass = getClass(classCurie, dataset);
-        logger.info("List instances for Class {} in Dataset {}", classCurie, datasetId);
+        String sparqlQuery = analizeDataset.generateSparqlWithGroq(dataset, classCurie.toString());
+        logger.info("GROQ result: {}", sparqlQuery);
+        logger.info("datasetClass: {}", datasetClass);
+        //logger.info("List instances for Class {} in Dataset {}", classCurie, datasetId);
+        String line =
+
+                "FROM <https://rhizomer.rhizomik.net/datasets/bsbm/network>\n" +
+                "\n" +
+                "FROM NAMED <https://rhizomer.rhizomik.net/datasets/bsbm/network>\n" +
+                "\n" +
+                "WHERE\n" +
+                "\n" +
+                " {\n" +
+                "\n" +
+                "   { SELECT DISTINCT ?instance\n" +
+                "\n" +
+                "     WHERE {\n" +
+                "\n" +
+                "              ?instance a <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product>\n" +
+                "\n";
         filters.remove("page");
         filters.remove("size");
+        /*
         StreamingResponseBody stream = outputStream ->
                 analizeDataset.retrieveClassInstances(outputStream,
                         dataset, datasetClass, filters, page, size, RDFFormat.JSONLD);
+        */
+        StreamingResponseBody stream = outputStream ->
+                analizeDataset.retrieveClassInstancesString(outputStream,
+                        dataset, datasetClass, filters, page, size, RDFFormat.JSONLD, line);
         return ResponseEntity.ok()
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(stream);

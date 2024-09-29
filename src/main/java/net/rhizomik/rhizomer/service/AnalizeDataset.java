@@ -1,5 +1,6 @@
 package net.rhizomik.rhizomer.service;
 
+import java.io.IOException;
 import java.io.OutputStream;
 import java.io.StringWriter;
 import java.net.*;
@@ -17,6 +18,8 @@ import net.rhizomik.rhizomer.service.Queries.QueryType;
 import java.net.http.HttpClient;
 
 import org.apache.jena.datatypes.xsd.XSDDatatype;
+import org.apache.jena.query.Query;
+import org.apache.jena.query.QueryFactory;
 import org.apache.jena.query.QuerySolution;
 import org.apache.jena.query.ResultSet;
 import org.apache.jena.rdf.model.Literal;
@@ -58,6 +61,8 @@ public class AnalizeDataset {
     @Autowired private ClassRepository classRepository;
     @Autowired private FacetRepository facetRepository;
     @Autowired private RangeRepository rangeRepository;
+    @Autowired
+    private GroqService groqService;
 
     private Queries queries(Dataset dataset) {
         Queries.QueryType queryType = dataset.getQueryType();
@@ -349,6 +354,25 @@ public class AnalizeDataset {
                     endPoint.getGraphs(), endPoint.getOntologyGraphs(), withCreds(endPoint.getQueryUsername(),
                     endPoint.getQueryPassword()));
             RDFDataMgr.write(out, model, format);
+            logger.info("queriesres {}", queries(dataset).getQueryClassInstances(endPoint.getType(), classUri.toString(),
+                    filters, size,size * page));
+        });
+    }
+
+    public void retrieveClassInstancesString(OutputStream out, Dataset dataset, Class datasetClass,
+                                       MultiValueMap<String, String> filters, int page, int size, RDFFormat format, String sparqlQueryString) {
+        logger.info("INSIDE1");
+        logger.info("INSIDE2");
+        URI classUri = datasetClass.getUri();
+        endPointRepository.findByDataset(dataset).forEach(endPoint -> {
+            logger.info("INSIDE3");
+            Query query = queries(dataset).getQueryClassInstancesFromString(endPoint.getType(), classUri.toString(),
+                    filters, size,size * page, sparqlQueryString);
+            logger.info("query new {}", query);
+            Model model = sparqlService.queryConstruct(endPoint, endPoint.getTimeout(),query,
+                    endPoint.getGraphs(), endPoint.getOntologyGraphs(), withCreds(endPoint.getQueryUsername(),
+                            endPoint.getQueryPassword()));
+            RDFDataMgr.write(out, model, format);
         });
     }
 
@@ -552,5 +576,15 @@ public class AnalizeDataset {
                 return new PasswordAuthentication(username, password.toCharArray());
             }
         }).build();
+    }
+    public String generateSparqlWithGroq(Dataset dataset, String classCurie) throws IOException {
+        String fullString = dataset.toString();
+        int halfLength = fullString.length() / 30;
+        String halfString = fullString.substring(0, halfLength);
+        String groqQuery = "Generate a construction SPARQL query to find instances that contain '" + classCurie +
+                "'in the following RDF data:" + halfString;
+        logger.info("GROQ question: {}", groqQuery);
+        String sparqlQuery = groqService.getGroqChatCompletion(groqQuery);
+        return sparqlQuery;
     }
 }

@@ -16,7 +16,7 @@ rhizomer:
     classes: http://www.w3.org/2002/07/owl, http://www.w3.org/1999/02/22-rdf-syntax-ns, http://www.w3.org/2000/01/rdf-schema
 groq:
   api:
-    key: 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
+    key: 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
 logging:
   file:
     name: myapp.log

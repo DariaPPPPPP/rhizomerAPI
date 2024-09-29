@@ -79,8 +79,10 @@ public class SPARQLService {
 
     public Model queryConstruct(SPARQLEndPoint endpoint, String timeout, Query query, List<String> graphs,
                                 List<String> namedGraphs, HttpClient creds) {
+        logger.info("INSIDE4");
         graphs.forEach(query::addGraphURI);
-        namedGraphs.forEach(query::addNamedGraphURI);
+        logger.info("INSIDE5");
+        //namedGraphs.forEach(query::addNamedGraphURI);
         logger.info("Sending to {} query: \n{}", endpoint.getQueryEndPoint(), query);
         QueryExecutionHTTPBuilder qBuilder = QueryExecutionHTTPBuilder.create();
         qBuilder.query(query).endpoint(endpoint.getQueryEndPoint().toString()).httpClient(creds);

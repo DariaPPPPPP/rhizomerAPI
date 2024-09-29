@@ -15,6 +15,8 @@ import org.apache.jena.update.UpdateRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.util.MultiValueMap;
 
+import static org.apache.jena.rdf.model.impl.RDFDefaultErrorHandler.logger;
+
 /**
  * Created by http://rhizomik.net/~roberto/
  */
@@ -69,6 +71,7 @@ public interface Queries {
     Query getQueryClassInstances(SPARQLEndPoint.ServerType serverType, String classUri,
                                  MultiValueMap<String, String> filters, int limit, int offset) {
         ParameterizedSparqlString pQuery = new ParameterizedSparqlString();
+
         pQuery.setCommandText(prefixes +
                 "CONSTRUCT { \n" +
                 "\t ?instance a ?class; \n" +
@@ -93,7 +96,28 @@ public interface Queries {
         Query query = pQuery.asQuery();
         return query;
     }
-
+    default
+    Query getQueryClassInstancesFromString(SPARQLEndPoint.ServerType serverType, String classUri,
+                                 MultiValueMap<String, String> filters, int limit, int offset, String line) {
+        ParameterizedSparqlString pQuery = new ParameterizedSparqlString();
+        logger.info("LINE {}", line);
+        pQuery.setCommandText(prefixes +  "CONSTRUCT { \n" +
+                        "\t ?instance a ?class; \n" +
+                        "\t\t rdfs:label ?label; \n" +
+                        "\t\t foaf:depiction ?depiction; \n" +
+                        "\t\t rdfs:comment ?comment . \n" +
+                        "\t ?class rdfs:label ?classLabel . \n" +
+                        "}" + line + "} ORDER BY (!BOUND(?label)) ASC(LCASE(?label)) LIMIT " + limit + " OFFSET " + offset + " \n" +
+        "} \n" +
+                "\t\t OPTIONAL { ?instance rdfs:label ?label } \n" +
+                "\t\t OPTIONAL { ?instance foaf:depiction ?depiction } \n" +
+                "\t\t OPTIONAL { ?instance rdfs:comment ?comment } \n" +
+                "\t\t OPTIONAL { GRAPH ?g { OPTIONAL { ?class rdfs:label ?classLabel } } } \n" +
+                "}");
+        pQuery.setIri("class", classUri);
+        Query query = pQuery.asQuery();
+        return query;
+    }
     default
     Query getQuerySearchInstancesCount(SPARQLEndPoint.ServerType serverType, String text) {
         ParameterizedSparqlString pQuery = new ParameterizedSparqlString();
