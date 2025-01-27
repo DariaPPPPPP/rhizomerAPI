@@ -12,6 +12,7 @@ import net.rhizomik.rhizomer.repository.ClassRepository;
 import net.rhizomik.rhizomer.repository.DatasetRepository;
 import net.rhizomik.rhizomer.repository.SPARQLEndPointRepository;
 import net.rhizomik.rhizomer.service.AnalizeDataset;
+import net.rhizomik.rhizomer.service.FlaskService;
 import net.rhizomik.rhizomer.service.SecurityController;
 import org.apache.commons.lang3.Validate;
 import org.apache.jena.riot.RDFFormat;
@@ -86,8 +87,8 @@ public class ClassController {
         logger.info("CLASS CURIE: {}", classCurie);
         securityController.checkPublicOrOwner(dataset, auth);
         Class datasetClass = getClass(classCurie, dataset);
-        String sparqlQuery = analizeDataset.generateSparqlWithGroq(dataset, classCurie.toString());
-        logger.info("GROQ result: {}", sparqlQuery);
+        //String sparqlQuery = analizeDataset.generateSparqlWithGroq(dataset, classCurie.toString());
+        //logger.info("GROQ result: {}", sparqlQuery);
         logger.info("datasetClass: {}", datasetClass);
         //logger.info("List instances for Class {} in Dataset {}", classCurie, datasetId);
         String line =
@@ -113,6 +114,7 @@ public class ClassController {
                 analizeDataset.retrieveClassInstances(outputStream,
                         dataset, datasetClass, filters, page, size, RDFFormat.JSONLD);
         */
+        FlaskService.sendPostRequest();
         StreamingResponseBody stream = outputStream ->
                 analizeDataset.retrieveClassInstancesString(outputStream,
                         dataset, datasetClass, filters, page, size, RDFFormat.JSONLD, line);
